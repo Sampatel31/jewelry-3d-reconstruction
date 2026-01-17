@@ -22,9 +22,15 @@ diffusers>=0.21.0
 accelerate>=0.20.0
 huggingface-hub>=0.17.0
 
+# TripoSR dependencies
+omegaconf>=2.3.0
+pytorch-lightning>=2.0.0
+einops>=0.7.0
+nvdiffrast  # GPU rasterization for TripoSR
+
 # 3D Reconstruction - TripoSR
-# TripoSR model downloaded from HuggingFace Hub (stabilityai/TripoSR)
-# No pip install needed - model auto-downloads on first use
+# TripoSR will be cloned from GitHub at runtime
+# Model weights auto-download from HuggingFace (stabilityai/TripoSR)
 
 # UI
 gradio>=4.0.0
@@ -33,9 +39,8 @@ gradio>=4.0.0
 pyyaml>=6.0
 tqdm>=4.65.0
 requests>=2.31.0
-einops>=0.7.0
 
-# DUSt3R (installed from git)
+# DUSt3R (installed from git, optional for multi-view)
 # git+https://github.com/naver/dust3r.git
 
 # PBR material processing

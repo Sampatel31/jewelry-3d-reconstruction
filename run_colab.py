@@ -13,9 +13,21 @@ def install_dependencies():
     """Install all required dependencies."""
     print("📦 Installing dependencies...")
     
+    # Ensure git is installed (critical for TripoSR)
+    print("🔧 Ensuring git is installed...")
+    try:
+        subprocess.check_call(["git", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print("✅ Git is available")
+    except:
+        print("📦 Installing git...")
+        subprocess.check_call(["apt-get", "update", "-qq"])
+        subprocess.check_call(["apt-get", "install", "-y", "-qq", "git"])
+        print("✅ Git installed")
+    
     import torch
     
     # Install core dependencies
+    print("📦 Installing core packages...")
     subprocess.check_call([
         sys.executable, "-m", "pip", "install", "-q",
         "torch", "torchvision", "numpy", "pillow", "opencv-python",
@@ -25,23 +37,18 @@ def install_dependencies():
         "imageio", "imageio-ffmpeg", "huggingface-hub"
     ])
     
-    # Install TripoSR for real 3D reconstruction
-    print("📦 Installing TripoSR (3D reconstruction model)...")
-    print("   Note: TripoSR will attempt runtime installation if not found")
-    print("   The model (~2GB) will auto-download from HuggingFace on first use")
-    try:
-        # Try to install TripoSR from GitHub
-        result = subprocess.run([
-            sys.executable, "-m", "pip", "install", "-q",
-            "git+https://github.com/VAST-AI-Research/TripoSR.git"
-        ], capture_output=True, text=True)
-        
-        if result.returncode == 0:
-            print("✅ TripoSR installed successfully")
-        else:
-            print("ℹ️ TripoSR will be installed at runtime if needed")
-    except Exception as e:
-        print(f"ℹ️ TripoSR installation deferred to runtime")
+    # Install TripoSR dependencies
+    print("📦 Installing TripoSR dependencies...")
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "-q",
+        "omegaconf", "pytorch-lightning", "nvdiffrast"
+    ])
+    
+    print("✅ All dependencies installed")
+    print("")
+    print("ℹ️  TripoSR will be downloaded from GitHub when first needed")
+    print("ℹ️  Model weights (~2GB) will download from HuggingFace automatically")
+    print("")
     
     # Install DUSt3R from GitHub (optional for multi-view)
     print("📦 Installing DUSt3R (optional, for multi-view)...")
@@ -52,8 +59,6 @@ def install_dependencies():
         ])
     except:
         print("⚠️ DUSt3R installation failed (optional)")
-    
-    print("✅ Dependencies installed")
 
 
 def setup_environment():

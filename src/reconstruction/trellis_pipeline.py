@@ -38,32 +38,54 @@ class TRELLISPipeline:
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         
         logger.info("Initializing TripoSR pipeline...")
+        logger.info("⚠️ IMPORTANT: TripoSR GitHub repo doesn't have proper setup.py")
+        logger.info("📌 Solution: Using direct model implementation from HuggingFace")
         
-        # Try to load TripoSR model via HuggingFace Hub
+        # Install TripoSR package directly using alternative method
         try:
             import sys
             import subprocess
             
-            # Check if TripoSR is available, if not, try to install it
+            # First try importing
             try:
                 from tsr.system import TSR
+                logger.info("✅ TripoSR already installed")
             except ImportError:
-                logger.info("TripoSR not found, attempting to install from GitHub...")
-                try:
-                    # Try installing directly from GitHub with proper subdirectory
+                logger.info("📦 Installing TripoSR package dependencies...")
+                
+                # Install required packages for TripoSR
+                subprocess.check_call([
+                    sys.executable, "-m", "pip", "install", "-q",
+                    "omegaconf", "einops", "pytorch-lightning", "nvdiffrast"
+                ], stderr=subprocess.STDOUT)
+                
+                # Clone and install TripoSR manually
+                logger.info("📥 Downloading TripoSR source code...")
+                import tempfile
+                import os
+                import shutil
+                
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    # Clone the repository
                     subprocess.check_call([
-                        sys.executable, "-m", "pip", "install", "-q",
-                        "git+https://github.com/VAST-AI-Research/TripoSR.git"
-                    ], stderr=subprocess.DEVNULL)
+                        "git", "clone", "--depth", "1",
+                        "https://github.com/VAST-AI-Research/TripoSR.git",
+                        tmpdir
+                    ], stderr=subprocess.STDOUT)
+                    
+                    # Add to Python path
+                    tsr_path = os.path.join(tmpdir, "tsr")
+                    if tsr_path not in sys.path:
+                        sys.path.insert(0, tmpdir)
+                    
+                    # Now import should work
                     from tsr.system import TSR
-                    logger.info("TripoSR installed successfully")
-                except Exception as install_error:
-                    logger.warning(f"Could not install TripoSR: {install_error}")
-                    raise ImportError("TripoSR not available")
+                    logger.info("✅ TripoSR loaded from source")
             
             # Load pretrained model from HuggingFace
             model_name = config.get('triposr_model', 'stabilityai/TripoSR')
-            logger.info(f"Loading TripoSR model from {model_name}...")
+            logger.info(f"📥 Loading TripoSR model from {model_name}...")
+            logger.info("   This will download ~2GB of model weights (one-time only)")
             
             self.model = TSR.from_pretrained(
                 model_name,
@@ -73,15 +95,21 @@ class TRELLISPipeline:
             self.model = self.model.to(self.device)
             self.model.eval()
             
-            logger.info("TripoSR model loaded successfully")
+            logger.info("✅ TripoSR model loaded and ready for 3D reconstruction!")
             self.model_available = True
             
         except Exception as e:
-            logger.warning(f"TripoSR not available: {e}. Using fallback placeholder.")
-            logger.info("This is expected - TripoSR requires manual installation.")
-            logger.info("The system will continue with placeholder meshes for demonstration.")
-            self.model_available = False
-            self.model = None
+            logger.error(f"❌ Failed to load TripoSR: {e}")
+            logger.error("📋 Error details:")
+            import traceback
+            logger.error(traceback.format_exc())
+            logger.error("")
+            logger.error("🔧 TROUBLESHOOTING:")
+            logger.error("   1. Ensure you have git installed: !apt-get install -y git")
+            logger.error("   2. Ensure GPU is available (TripoSR works best with GPU)")
+            logger.error("   3. Try restarting the runtime and running again")
+            logger.error("")
+            raise RuntimeError(f"TripoSR initialization failed. Cannot continue without 3D reconstruction model. Error: {e}")
     
     def reconstruct(self, image: Image.Image, **kwargs) -> Dict:
         """
@@ -100,9 +128,13 @@ class TRELLISPipeline:
         """
         logger.info("Starting TripoSR reconstruction...")
         
-        if not self.model_available:
-            logger.warning("TripoSR model not available, returning placeholder mesh")
-            return self._create_placeholder_result()
+        # NO FALLBACKS - Fail if TripoSR is not available
+        if not hasattr(self, 'model_available') or not self.model_available:
+            raise RuntimeError(
+                "❌ TripoSR model is not available!\n"
+                "Cannot perform 3D reconstruction without the model.\n"
+                "Please check the error messages during initialization."
+            )
         
         # Preprocess image
         if image.mode == 'RGBA':
