@@ -238,12 +238,20 @@ def main():
     
     logger.info("Starting Jewelry 3D Reconstruction System...")
     
+    # Detect if running in Colab
+    try:
+        import google.colab
+        in_colab = True
+        logger.info("Running in Google Colab - enabling public link sharing")
+    except ImportError:
+        in_colab = False
+    
     # Create and launch interface
     interface = create_gradio_interface()
     interface.launch(
         server_name="0.0.0.0",
         server_port=7860,
-        share=False
+        share=in_colab  # Auto-enable sharing in Colab
     )
 
 
