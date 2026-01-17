@@ -14,6 +14,7 @@ pymeshlab>=2022.2
 
 # Background removal
 rembg>=2.0.50
+onnxruntime>=1.15.0
 
 # Deep learning models
 transformers>=4.30.0

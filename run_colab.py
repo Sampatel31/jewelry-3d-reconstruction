@@ -18,7 +18,7 @@ def install_dependencies():
         sys.executable, "-m", "pip", "install", "-q",
         "torch", "torchvision", "numpy", "pillow", "opencv-python",
         "scipy", "scikit-image", "trimesh", "open3d", "pymeshlab",
-        "rembg", "transformers", "diffusers", "accelerate",
+        "rembg", "onnxruntime", "transformers", "diffusers", "accelerate",
         "gradio", "pyyaml", "tqdm", "requests", "einops",
         "imageio", "imageio-ffmpeg"
     ])
