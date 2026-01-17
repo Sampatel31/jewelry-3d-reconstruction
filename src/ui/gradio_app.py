@@ -70,12 +70,15 @@ class JewelryReconstructionApp:
             image_paths = []
             
             for idx, img in enumerate(images):
-                if isinstance(img, dict):
+                if isinstance(img, (str, Path)):
+                    # Handle file path (string or Path object)
+                    image_paths.append(str(img))
+                elif isinstance(img, dict):
                     # Handle file upload dict
                     img_path = img.get('name', img.get('path'))
                     image_paths.append(img_path)
                 else:
-                    # Handle PIL Image
+                    # Handle PIL Image or numpy array
                     img_path = temp_dir / f"input_{idx}.png"
                     if isinstance(img, np.ndarray):
                         img = Image.fromarray(img)
