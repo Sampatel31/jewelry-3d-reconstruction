@@ -39,10 +39,27 @@ class TRELLISPipeline:
         
         logger.info("Initializing TripoSR pipeline...")
         
-        # Try to load TripoSR model
+        # Try to load TripoSR model via HuggingFace Hub
         try:
-            # Import TripoSR
-            from tsr.system import TSR
+            import sys
+            import subprocess
+            
+            # Check if TripoSR is available, if not, try to install it
+            try:
+                from tsr.system import TSR
+            except ImportError:
+                logger.info("TripoSR not found, attempting to install from GitHub...")
+                try:
+                    # Try installing directly from GitHub with proper subdirectory
+                    subprocess.check_call([
+                        sys.executable, "-m", "pip", "install", "-q",
+                        "git+https://github.com/VAST-AI-Research/TripoSR.git"
+                    ], stderr=subprocess.DEVNULL)
+                    from tsr.system import TSR
+                    logger.info("TripoSR installed successfully")
+                except Exception as install_error:
+                    logger.warning(f"Could not install TripoSR: {install_error}")
+                    raise ImportError("TripoSR not available")
             
             # Load pretrained model from HuggingFace
             model_name = config.get('triposr_model', 'stabilityai/TripoSR')
@@ -61,6 +78,8 @@ class TRELLISPipeline:
             
         except Exception as e:
             logger.warning(f"TripoSR not available: {e}. Using fallback placeholder.")
+            logger.info("This is expected - TripoSR requires manual installation.")
+            logger.info("The system will continue with placeholder meshes for demonstration.")
             self.model_available = False
             self.model = None
     

@@ -20,10 +20,11 @@ onnxruntime>=1.15.0
 transformers>=4.30.0
 diffusers>=0.21.0
 accelerate>=0.20.0
+huggingface-hub>=0.17.0
 
 # 3D Reconstruction - TripoSR
-triposr
-# Install from: pip install git+https://github.com/VAST-AI-Research/TripoSR.git
+# TripoSR model downloaded from HuggingFace Hub (stabilityai/TripoSR)
+# No pip install needed - model auto-downloads on first use
 
 # UI
 gradio>=4.0.0

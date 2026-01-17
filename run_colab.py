@@ -13,6 +13,8 @@ def install_dependencies():
     """Install all required dependencies."""
     print("📦 Installing dependencies...")
     
+    import torch
+    
     # Install core dependencies
     subprocess.check_call([
         sys.executable, "-m", "pip", "install", "-q",
@@ -20,20 +22,26 @@ def install_dependencies():
         "scipy", "scikit-image", "trimesh", "open3d", "pymeshlab",
         "rembg", "onnxruntime", "transformers", "diffusers", "accelerate",
         "gradio", "pyyaml", "tqdm", "requests", "einops",
-        "imageio", "imageio-ffmpeg"
+        "imageio", "imageio-ffmpeg", "huggingface-hub"
     ])
     
     # Install TripoSR for real 3D reconstruction
     print("📦 Installing TripoSR (3D reconstruction model)...")
+    print("   Note: TripoSR will attempt runtime installation if not found")
+    print("   The model (~2GB) will auto-download from HuggingFace on first use")
     try:
-        subprocess.check_call([
+        # Try to install TripoSR from GitHub
+        result = subprocess.run([
             sys.executable, "-m", "pip", "install", "-q",
             "git+https://github.com/VAST-AI-Research/TripoSR.git"
-        ])
-        print("✅ TripoSR installed successfully")
+        ], capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print("✅ TripoSR installed successfully")
+        else:
+            print("ℹ️ TripoSR will be installed at runtime if needed")
     except Exception as e:
-        print(f"⚠️ TripoSR installation failed: {e}")
-        print("   Falling back to placeholder meshes")
+        print(f"ℹ️ TripoSR installation deferred to runtime")
     
     # Install DUSt3R from GitHub (optional for multi-view)
     print("📦 Installing DUSt3R (optional, for multi-view)...")
