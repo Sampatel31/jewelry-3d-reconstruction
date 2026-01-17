@@ -1,6 +1,6 @@
 # 📖 Usage Guide: Google Colab Deployment
 
-This guide provides step-by-step instructions for deploying the Jewelry 3D Reconstruction System on Google Colab.
+This guide provides step-by-step instructions for deploying the Jewelry 3D Reconstruction System on Google Colab with **real AI-powered 3D reconstruction using TripoSR**.
 
 ## 🚀 Single-Command Deployment
 
@@ -18,10 +18,10 @@ Open a new Google Colab notebook and run:
 ```
 
 This will:
-1. Install all dependencies
-2. Download required models
-3. Launch the Gradio interface
-4. Provide a public URL for access
+1. Install all dependencies including **TripoSR** (real 3D reconstruction model)
+2. Download required model weights (~2GB)
+3. Launch the Gradio interface with public URL
+4. Enable real AI-powered 3D reconstruction
 
 ### Option 2: Manual Installation
 
@@ -34,16 +34,19 @@ If you prefer manual control:
 
 # 2. Install core dependencies
 !pip install -q torch torchvision numpy pillow opencv-python scipy scikit-image
-!pip install -q trimesh open3d pymeshlab rembg transformers diffusers accelerate
+!pip install -q trimesh open3d pymeshlab rembg onnxruntime transformers diffusers accelerate
 !pip install -q gradio pyyaml tqdm requests einops imageio imageio-ffmpeg
 
-# 3. Install DUSt3R (optional, for multi-view)
+# 3. Install TripoSR (Real 3D Reconstruction Model)
+!pip install -q git+https://github.com/VAST-AI-Research/TripoSR.git
+
+# 4. Install DUSt3R (optional, for multi-view)
 !pip install -q git+https://github.com/naver/dust3r.git
 
-# 4. Install package
+# 5. Install package
 !pip install -e .
 
-# 5. Launch application
+# 6. Launch application
 from src.ui.gradio_app import main
 main()
 ```
@@ -71,11 +74,25 @@ main()
 ### Step 3: Reconstruct
 
 1. Click "🚀 Reconstruct 3D Model"
-2. Wait for processing (2-10 minutes depending on:
-   - Number of images
-   - Selected pipeline
-   - Material extraction settings
+2. Wait for processing (1-5 minutes with TripoSR):
+   - **Single image**: ~30 seconds with TripoSR
+   - **Multiple images**: 2-5 minutes with geometric reconstruction
+   - Material extraction adds 1-2 minutes
 3. Download the result when complete
+
+## 🤖 What Happens Behind the Scenes
+
+**Single Image (1-2 images):**
+- System uses **TripoSR** (Stability AI's feed-forward 3D model)
+- Real AI-powered reconstruction from a single view
+- Generates full 3D geometry including unseen parts
+- Fast inference: ~30 seconds on Colab GPU
+
+**Multiple Images (3+ images):**
+- System uses geometric reconstruction (DUSt3R + Sparse2DGS)
+- Estimates camera poses automatically
+- Triangulates 3D points from multiple views
+- More accurate but requires good image coverage
 
 ## 📸 Photography Tips
 

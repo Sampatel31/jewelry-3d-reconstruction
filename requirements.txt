@@ -21,6 +21,10 @@ transformers>=4.30.0
 diffusers>=0.21.0
 accelerate>=0.20.0
 
+# 3D Reconstruction - TripoSR
+triposr
+# Install from: pip install git+https://github.com/VAST-AI-Research/TripoSR.git
+
 # UI
 gradio>=4.0.0
 
@@ -32,10 +36,6 @@ einops>=0.7.0
 
 # DUSt3R (installed from git)
 # git+https://github.com/naver/dust3r.git
-
-# TRELLIS dependencies
-# ninja
-# kaolin (for advanced 3D operations)
 
 # PBR material processing
 imageio>=2.31.0

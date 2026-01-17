@@ -1,6 +1,6 @@
 """
-TRELLIS pipeline for single-view generative reconstruction.
-Uses SLAT (Structured LATent) representation for 3D generation.
+Single-view 3D reconstruction pipeline using TripoSR.
+TripoSR is a fast, feed-forward 3D reconstruction model from Stability AI.
 """
 
 import torch
@@ -16,12 +16,12 @@ logger = get_logger(__name__)
 
 class TRELLISPipeline:
     """
-    Single-view generative reconstruction using TRELLIS.
+    Single-view generative reconstruction using TripoSR.
     
-    TRELLIS generates 3D geometry from a single image using:
-    1. SLAT (Structured LATent) 3D representation
-    2. Diffusion-based generation
-    3. Image-conditioned lifting
+    TripoSR generates 3D geometry from a single image using:
+    1. Feed-forward transformer architecture
+    2. Triplane representation
+    3. Fast inference (no diffusion steps needed)
     
     Suitable for planar jewelry (necklaces, earrings) where
     backside geometry must be hallucinated.
@@ -29,7 +29,7 @@ class TRELLISPipeline:
     
     def __init__(self, config: Dict):
         """
-        Initialize TRELLIS pipeline.
+        Initialize TripoSR pipeline.
         
         Args:
             config: Configuration dictionary
@@ -37,83 +37,105 @@ class TRELLISPipeline:
         self.config = config
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         
-        logger.info("Initializing TRELLIS pipeline...")
+        logger.info("Initializing TripoSR pipeline...")
         
-        # Try to load TRELLIS model (gracefully handle if not available)
+        # Try to load TripoSR model
         try:
-            # Import TRELLIS modules
-            from trellis.pipelines import TRELLISImageTo3DPipeline
-            from trellis.representations import Gaussian, MeshExtractResult
+            # Import TripoSR
+            from tsr.system import TSR
             
-            model_name = config.get('trellis_model', 'JeffreyXiang/TRELLIS-image-large')
-            self.pipeline = TRELLISImageTo3DPipeline.from_pretrained(model_name)
-            self.pipeline = self.pipeline.to(self.device)
+            # Load pretrained model from HuggingFace
+            model_name = config.get('triposr_model', 'stabilityai/TripoSR')
+            logger.info(f"Loading TripoSR model from {model_name}...")
             
-            logger.info("TRELLIS model loaded successfully")
+            self.model = TSR.from_pretrained(
+                model_name,
+                config_name="config.yaml",
+                weight_name="model.ckpt",
+            )
+            self.model = self.model.to(self.device)
+            self.model.eval()
+            
+            logger.info("TripoSR model loaded successfully")
             self.model_available = True
             
-        except ImportError as e:
-            logger.warning("TRELLIS not available. Using fallback placeholder.")
+        except Exception as e:
+            logger.warning(f"TripoSR not available: {e}. Using fallback placeholder.")
             self.model_available = False
-            self.pipeline = None
+            self.model = None
     
     def reconstruct(self, image: Image.Image, **kwargs) -> Dict:
         """
-        Reconstruct 3D model from single image.
+        Reconstruct 3D model from single image using TripoSR.
         
         Args:
             image: Input RGB or RGBA image
             **kwargs: Additional parameters
-                - seed: Random seed for generation
-                - num_inference_steps: Diffusion steps
-                - guidance_scale: Classifier-free guidance strength
+                - mc_resolution: Marching cubes resolution (default 256)
+                - remove_background: Whether to remove background (default True)
         
         Returns:
             Dictionary containing:
                 - mesh: Trimesh object
-                - gaussians: Optional Gaussian representation
-                - slat: SLAT latent representation
+                - render: Optional render preview
         """
-        logger.info("Starting TRELLIS reconstruction...")
+        logger.info("Starting TripoSR reconstruction...")
         
         if not self.model_available:
-            logger.warning("TRELLIS model not available, returning placeholder mesh")
+            logger.warning("TripoSR model not available, returning placeholder mesh")
             return self._create_placeholder_result()
         
         # Preprocess image
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+        if image.mode == 'RGBA':
+            # Keep alpha channel for background removal
+            image_rgb = image.convert('RGB')
+        else:
+            image_rgb = image.convert('RGB')
         
-        # Set generation parameters
-        seed = kwargs.get('seed', 42)
-        num_inference_steps = kwargs.get('num_inference_steps', 50)
-        guidance_scale = kwargs.get('guidance_scale', 7.5)
+        # Set parameters
+        mc_resolution = kwargs.get('mc_resolution', 256)
+        remove_background = kwargs.get('remove_background', False)  # Already done in preprocessing
         
-        # Run TRELLIS generation
+        # Prepare image for TripoSR
+        # TripoSR expects images preprocessed with rembg
+        from rembg import remove as rembg_remove
+        
+        if remove_background and image.mode != 'RGBA':
+            # Remove background if not already done
+            image_no_bg = rembg_remove(image_rgb)
+        else:
+            image_no_bg = image
+        
+        # Run TripoSR inference
+        logger.info("Running TripoSR inference...")
         with torch.no_grad():
-            outputs = self.pipeline(
-                image,
-                seed=seed,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-            )
+            # TripoSR expects [1, 3, H, W] tensor
+            scene_codes = self.model([image_no_bg], device=self.device)
         
-        # Extract mesh from SLAT representation
-        slat = outputs['slat']
+        # Extract mesh using marching cubes
+        logger.info(f"Extracting mesh with resolution {mc_resolution}...")
+        meshes = self.model.extract_mesh(scene_codes, resolution=mc_resolution)
         
-        # Convert to mesh
-        mesh_result = slat.extract_mesh()
-        vertices = mesh_result.vertices.cpu().numpy()
-        faces = mesh_result.faces.cpu().numpy()
+        # Get the first mesh
+        mesh_data = meshes[0]
         
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+        # Convert to trimesh
+        vertices = mesh_data.vertices.cpu().numpy()
+        faces = mesh_data.faces.cpu().numpy()
         
-        logger.info(f"TRELLIS reconstruction complete: {len(vertices)} vertices, {len(faces)} faces")
+        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        
+        # Clean up mesh
+        mesh.remove_duplicate_faces()
+        mesh.remove_degenerate_faces()
+        mesh.remove_unreferenced_vertices()
+        
+        logger.info(f"TripoSR reconstruction complete: {len(vertices)} vertices, {len(faces)} faces")
         
         return {
             'mesh': mesh,
-            'slat': slat,
-            'gaussians': outputs.get('gaussians', None)
+            'scene_codes': scene_codes,
+            'render': None
         }
     
     def _create_placeholder_result(self) -> Dict:

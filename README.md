@@ -3,18 +3,18 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A production-ready system for automated high-fidelity 3D reconstruction of jewelry from sparse visual data (1-3 images). Features dual pipeline architecture with generative and geometric reconstruction, automatic background removal, and PBR material extraction.
+A production-ready system for automated high-fidelity 3D reconstruction of jewelry from sparse visual data (1-5 images). Features dual pipeline architecture with real AI-powered generative and geometric reconstruction, automatic background removal, and PBR material extraction.
 
 ## ✨ Features
 
 ### Core Capabilities
 
 - **🎨 Dual Pipeline Architecture**
-  - **Pipeline A**: Single-view generative reconstruction using TRELLIS for necklaces/earrings
+  - **Pipeline A**: Single-view generative reconstruction using **TripoSR** for necklaces/earrings
   - **Pipeline B**: Multi-view geometric reconstruction using DUSt3R + Sparse2DGS for rings/bangles
 
 - **📸 Smart Input Processing**
-  - Automatic background removal (rembg/SAM)
+  - Automatic background removal (rembg/U-2-Net)
   - Intelligent pipeline routing based on input count
   - Support for 1-5 input images
 
@@ -24,6 +24,7 @@ A production-ready system for automated high-fidelity 3D reconstruction of jewel
   - Confidence-based point filtering
 
 - **🏗️ High-Quality Reconstruction**
+  - **TripoSR**: Fast feed-forward 3D generation from Stability AI
   - 2D Gaussian surfels for geometric accuracy
   - Depth distortion and normal consistency regularization
   - Edge-preserving mesh extraction

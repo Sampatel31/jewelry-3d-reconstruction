@@ -23,8 +23,20 @@ def install_dependencies():
         "imageio", "imageio-ffmpeg"
     ])
     
-    # Install DUSt3R from GitHub
-    print("📦 Installing DUSt3R...")
+    # Install TripoSR for real 3D reconstruction
+    print("📦 Installing TripoSR (3D reconstruction model)...")
+    try:
+        subprocess.check_call([
+            sys.executable, "-m", "pip", "install", "-q",
+            "git+https://github.com/VAST-AI-Research/TripoSR.git"
+        ])
+        print("✅ TripoSR installed successfully")
+    except Exception as e:
+        print(f"⚠️ TripoSR installation failed: {e}")
+        print("   Falling back to placeholder meshes")
+    
+    # Install DUSt3R from GitHub (optional for multi-view)
+    print("📦 Installing DUSt3R (optional, for multi-view)...")
     try:
         subprocess.check_call([
             sys.executable, "-m", "pip", "install", "-q",
